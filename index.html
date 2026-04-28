@@ -245,11 +245,11 @@
 // ============================================================
 // 🔧 НАСТРОЙКА — ВПИШИ СВОИ КЛЮЧИ ИЗ SUPABASE
 // ============================================================
-const SUPABASE_URL = 'https://udfjvuctjbcxlqrzkomm.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkZmp2dWN0amJjeGxxcnprb21tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODgzNjcsImV4cCI6MjA5Mjk2NDM2N30.szqYTNRcftQ9LSLQlF98DZQvnWnpjgot2jkODAYXvLA';
+const SUPABASE_URL = window.location.origin + '/supabase';
+const SUPABASE_KEY = 'sb_publishable_VvTDrtOubO2eEZN-DAirBA_w5ku4Vry';
 // ============================================================
 
-const isConfigured = SUPABASE_URL.startsWith('https://') && SUPABASE_KEY.length > 20;
+const isConfigured = SUPABASE_KEY.length > 20;
 let sb = null;
 if (isConfigured) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
