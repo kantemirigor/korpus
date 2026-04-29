@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Корпус</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root[data-theme="light"] {
+    --bg: #f5f5f7; --surface: #ffffff; --surface2: #fafafa; --sidebar: #f9f9fb;
+    --border: #e8e8ec; --border-strong: #d1d1d8;
+    --text: #1a1a1f; --text2: #6b6b78; --text3: #a0a0ad;
+    --accent: #6c5ce7; --accent-hover: #5e4dd4; --accent-soft: #6c5ce715;
+    --green: #00b884; --green-soft: #00b88420;
+    --yellow: #f5a623; --yellow-soft: #f5a62320;
+    --red: #ee5a5a; --red-soft: #ee5a5a20;
+    --blue: #4a90e2; --blue-soft: #4a90e220;
+    --hover: #f0f0f4;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.02);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  :root[data-theme="dark"] {
+    --bg: #1a1b1e; --surface: #25262b; --surface2: #2c2d33; --sidebar: #1e1f23;
+    --border: #34353c; --border-strong: #444550;
+    --text: #f0f0f5; --text2: #9ea0aa; --text3: #6b6c75;
+    --accent: #7c6df0; --accent-hover: #8e80f5; --accent-soft: #7c6df020;
+    --green: #00cc99; --green-soft: #00cc9925;
+    --yellow: #ffb84d; --yellow-soft: #ffb84d25;
+    --red: #ff6b6b; --red-soft: #ff6b6b25;
+    --blue: #5ba3ec; --blue-soft: #5ba3ec25;
+    --hover: #2c2d33;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; transition: background 0.2s, color 0.2s; }
+  #loading { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+  .spinner { width: 36px; height: 36px; border: 2.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #setup-banner { background: var(--red); color: #fff; padding: 14px 20px; text-align: center; font-size: 13px; font-weight: 600; }
+  #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--bg); }
+  .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 36px; width: 400px; max-width: 100%; box-shadow: var(--shadow-lg); }
+  .login-logo { font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 4px; letter-spacing: -0.5px; }
+  .login-logo .dot { color: var(--accent); }
+  .login-sub { text-align: center; color: var(--text2); font-size: 13px; margin-bottom: 28px; }
+  .login-tabs { display: flex; gap: 4px; margin-bottom: 22px; background: var(--bg); border-radius: 10px; padding: 4px; }
+  .login-tab { flex: 1; padding: 9px; border: none; background: transparent; color: var(--text2); cursor: pointer; border-radius: 7px; font-size: 13px; font-weight: 600; font-family: inherit; transition: all 0.15s; }
+  .login-tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .login-msg { padding: 10px 14px; border-radius: 9px; font-size: 12px; margin-bottom: 14px; display: none; }
+  .login-msg.show { display: block; }
+  .login-msg.error { background: var(--red-soft); color: var(--red); }
+  .login-msg.success { background: var(--green-soft); color: var(--green); }
+  #app { display: flex; height: 100vh; overflow: hidden; }
+  #sidebar { width: 240px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar-header { padding: 18px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+  .sidebar-logo { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+  .sidebar-logo .dot { color: var(--accent); }
+  .sidebar-nav { flex: 1; padding: 14px 10px; overflow-y: auto; }
+  .nav-section-title { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; padding: 10px 12px 6px; }
+  .nav-btn { display: flex; align-items: center; gap: 11px; width: 100%; padding: 9px 12px; background: none; border: none; border-radius: 8px; color: var(--text2); font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s; text-align: left; margin-bottom: 2px; }
+  .nav-btn:hover { background: var(--hover); color: var(--text); }
+  .nav-btn.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .nav-icon { font-size: 17px; line-height: 1; flex-shrink: 0; width: 20px; text-align: center; }
+  .sidebar-footer { padding: 12px; border-top: 1px solid var(--border); }
+  .user-card { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; }
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; color: #fff; flex-shrink: 0; }
+  .user-info { flex: 1; min-width: 0; }
+  .user-email { font-size: 12px; color: var(--text2); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .icon-btn { width: 30px; height: 30px; border-radius: 7px; border: none; background: none; color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; transition: all 0.15s; flex-shrink: 0; }
+  .icon-btn:hover { background: var(--hover); color: var(--text); }
+  #main { flex: 1; overflow-y: auto; }
+  .topbar { position: sticky; top: 0; z-index: 50; background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; gap: 16px; }
+  .page-title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .topbar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .content { padding: 24px 28px; }
+  @media (max-width: 768px) {
+    #sidebar { position: fixed; left: -240px; top: 0; bottom: 0; z-index: 99; transition: left 0.2s; box-shadow: var(--shadow-lg); }
+    #sidebar.open { left: 0; }
+    .topbar { padding: 12px 16px; }
+    .content { padding: 16px; }
+    .menu-toggle { display: flex !important; }
+    #sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 98; display: none; }
+    #sidebar-overlay.open { display: block; }
+  }
+  .menu-toggle { display: none; }
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; border: 1px solid transparent; transition: all 0.15s; white-space: nowrap; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-ghost { background: var(--surface); color: var(--text); border-color: var(--border); }
+  .btn-ghost:hover { background: var(--hover); border-color: var(--border-strong); }
+  .btn-block { width: 100%; justify-content: center; padding: 11px; font-size: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .grid4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+  @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+  .form-control { width: 100%; background: var(--surface); border: 1.5px solid var(--border); border-radius: 9px; padding: 10px 13px; color: var(--text); font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.15s; }
+  .form-control:focus { border-color: var(--accent); }
+  textarea.form-control { min-height: 80px; resize: vertical; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow); }
+  .stat-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 14px; }
+  .stat-num { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 4px; letter-spacing: -0.5px; }
+  .stat-label { font-size: 12px; color: var(--text2); font-weight: 500; }
+  .progress-track { background: var(--bg); border-radius: 100px; height: 6px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 100px; transition: width 0.6s ease; }
+  .task-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; transition: all 0.12s; }
+  .task-row:hover { border-color: var(--border-strong); }
+  .task-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .task-content { flex: 1; min-width: 0; }
+  .task-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .task-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text2); align-items: center; }
+  .kanban { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; min-height: calc(100vh - 200px); }
+  @media (max-width: 1000px) { .kanban { grid-template-columns: 1fr; } }
+  .kanban-col { background: var(--bg); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .kanban-col-header { display: flex; align-items: center; gap: 8px; padding: 4px 6px 8px; }
+  .kanban-col-title { font-weight: 700; font-size: 13px; }
+  .kanban-col-count { background: var(--surface); color: var(--text2); padding: 1px 8px; border-radius: 100px; font-size: 11px; font-weight: 700; }
+  .kanban-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; box-shadow: var(--shadow); cursor: pointer; transition: all 0.15s; }
+  .kanban-card:hover { border-color: var(--border-strong); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .kanban-card-title { font-weight: 600; font-size: 13px; margin-bottom: 8px; line-height: 1.4; }
+  .kanban-card-desc { font-size: 12px; color: var(--text2); margin-bottom: 10px; line-height: 1.4; }
+  .kanban-card-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .kanban-add { border: 1.5px dashed var(--border); border-radius: 10px; padding: 10px; text-align: center; color: var(--text3); font-size: 12px; font-weight: 600; cursor: pointer; background: none; transition: all 0.15s; }
+  .kanban-add:hover { border-color: var(--accent); color: var(--accent); }
+  .dept-node { margin-bottom: 4px; }
+  .dept-header { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; cursor: pointer; background: var(--surface); border: 1px solid var(--border); transition: all 0.12s; }
+  .dept-header:hover { border-color: var(--border-strong); }
+  .dept-color { width: 4px; height: 28px; border-radius: 100px; flex-shrink: 0; }
+  .dept-name { font-weight: 600; font-size: 14px; }
+  .dept-meta { font-size: 12px; color: var(--text2); }
+  .dept-employees { padding-left: 28px; margin-top: 6px; }
+  .emp-row { display: flex; align-items: center; gap: 11px; padding: 8px 12px; border-radius: 8px; transition: background 0.12s; }
+  .emp-row:hover { background: var(--hover); }
+  .emp-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #fff; flex-shrink: 0; }
+  .emp-name { font-weight: 600; font-size: 13px; }
+  .emp-role { font-size: 11px; color: var(--text2); }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); }
+  .kpi-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .kpi-dept { font-size: 11px; font-weight: 600; color: var(--text2); }
+  .kpi-name { font-weight: 600; font-size: 14px; margin-bottom: 14px; line-height: 1.4; }
+  .kpi-values { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
+  .kpi-current { font-size: 26px; font-weight: 800; line-height: 1; letter-spacing: -0.5px; }
+  .kpi-target { font-size: 12px; color: var(--text2); }
+  .kpi-pct { text-align: right; font-size: 12px; font-weight: 700; margin-top: 4px; }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+  .filter-btn { padding: 6px 13px; border-radius: 100px; font-size: 12px; font-weight: 600; cursor: pointer; background: var(--surface); border: 1px solid var(--border); color: var(--text2); font-family: inherit; transition: all 0.12s; }
+  .filter-btn:hover { border-color: var(--border-strong); color: var(--text); }
+  .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .view-toggle { display: inline-flex; background: var(--bg); border-radius: 8px; padding: 3px; gap: 2px; }
+  .view-toggle-btn { padding: 5px 12px; border-radius: 6px; border: none; background: transparent; color: var(--text2); cursor: pointer; font-size: 12px; font-weight: 600; font-family: inherit; transition: all 0.12s; }
+  .view-toggle-btn.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity 0.2s; padding: 20px; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--surface); border-radius: 16px; padding: 28px; width: 480px; max-width: 100%; max-height: 90vh; overflow-y: auto; transform: translateY(12px); transition: transform 0.2s; box-shadow: var(--shadow-lg); }
+  .modal-overlay.open .modal { transform: none; }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; letter-spacing: -0.3px; }
+  .modal-close { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 24px; line-height: 1; padding: 0; }
+  #toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: var(--surface); padding: 11px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 2000; transform: translateY(60px); opacity: 0; transition: all 0.25s; box-shadow: var(--shadow-lg); }
+  #toast.show { transform: none; opacity: 1; }
+  #toast.error { background: var(--red); color: #fff; }
+  #toast.success { background: var(--green); color: #fff; }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div></div>
+<div id="setup-banner" style="display:none">⚠ Не настроено подключение к базе данных</div>
+
+<div id="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">Корпус<span class="dot">.</span></div>
+    <div class="login-sub">Управление задачами и KPI</div>
+    <div class="login-tabs">
+      <button class="login-tab active" id="tab-login" onclick="setLoginTab('login')">Вход</button>
+      <button class="login-tab" id="tab-signup" onclick="setLoginTab('signup')">Регистрация</button>
+    </div>
+    <div class="login-msg" id="login-msg"></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="login-email" type="email" placeholder="user@company.ru"></div>
+    <div class="form-group"><label class="form-label">Пароль</label><input class="form-control" id="login-password" type="password" placeholder="Минимум 6 символов"></div>
+    <button class="btn btn-primary btn-block" id="login-btn" onclick="doAuth()">Войти</button>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">Корпус<span class="dot">.</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Рабочее пространство</div>
+      <button class="nav-btn active" onclick="switchTab('dashboard')"><span class="nav-icon">🏠</span><span>Главная</span></button>
+      <button class="nav-btn" onclick="switchTab('tasks')"><span class="nav-icon">✅</span><span>Задачи</span></button>
+      <button class="nav-btn" onclick="switchTab('kpi')"><span class="nav-icon">📊</span><span>KPI</span></button>
+      <div class="nav-section-title" style="margin-top:14px">Компания</div>
+      <button class="nav-btn" onclick="switchTab('org')"><span class="nav-icon">🏢</span><span>Структура</span></button>
+      <button class="nav-btn" onclick="switchTab('docs')"><span class="nav-icon">📄</span><span>Документы</span></button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info">
+          <div class="user-email" id="user-email">—</div>
+        </div>
+        <button class="icon-btn" onclick="toggleTheme()" title="Сменить тему" id="theme-btn">🌙</button>
+        <button class="icon-btn" onclick="doLogout()" title="Выйти">⏏</button>
+      </div>
+    </div>
+  </aside>
+  <main id="main">
+    <div class="topbar">
+      <button class="icon-btn menu-toggle" onclick="toggleSidebar()">☰</button>
+      <h1 class="page-title" id="topbar-title">Главная</h1>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal" id="modal-body"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL = window.location.origin + '/supabase';
+const SUPABASE_KEY = 'sb_publishable_VvTDrtOubO2eEZN-DAirBA_w5ku4Vry';
+
+const isConfigured = SUPABASE_KEY.length > 20;
+let sb = null;
+if (isConfigured) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let S = { departments: [], employees: [], tasks: [], kpis: [], docs: [] };
+let currentUser = null;
+let currentTab = 'dashboard';
+let openDepts = new Set();
+let taskFilter = 'all', kpiFilter = 'all', docFilter = 'all';
+let taskView = 'kanban';
+let loginTab = 'login';
+
+function loadTheme() {
+  const saved = localStorage.getItem('korpus_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = saved === 'light' ? '🌙' : '☀';
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('korpus_theme', next);
+  document.getElementById('theme-btn').textContent = next === 'light' ? '🌙' : '☀';
+}
+loadTheme();
+
+function badge(text, color) { return `<span class="badge" style="color:${color};background:${color}22">${text}</span>`; }
+function kpiPct(c, t) { return Math.min(100, Math.round(c/t*100)); }
+function kpiColor(c, t) { const p = kpiPct(c,t); return p>=95 ? 'var(--green)' : p>=75 ? 'var(--yellow)' : 'var(--red)'; }
+const STATUS = { todo: { label:'К выполнению', color:'var(--text2)', dot:'#9ca3af' }, in_progress: { label:'В работе', color:'var(--yellow)', dot:'#f59e0b' }, done: { label:'Выполнено', color:'var(--green)', dot:'#10b981' }, overdue: { label:'Просрочено', color:'var(--red)', dot:'#ef4444' } };
+const PRIORITY = { high: { label:'Высокий', color:'var(--red)' }, medium: { label:'Средний', color:'var(--yellow)' }, low: { label:'Низкий', color:'var(--text2)' } };
+function isOverdue(t) { return t.status !== 'done' && new Date(t.deadline) < new Date(); }
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type === 'error' ? 'show error' : 'show success';
+  setTimeout(()=>t.className='', 2500);
+}
+function g(id) { return document.getElementById(id)?.value || ''; }
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+
+function setLoginTab(t) {
+  loginTab = t;
+  document.getElementById('tab-login').classList.toggle('active', t==='login');
+  document.getElementById('tab-signup').classList.toggle('active', t==='signup');
+  document.getElementById('login-btn').textContent = t==='login' ? 'Войти' : 'Зарегистрироваться';
+  document.getElementById('login-msg').className = 'login-msg';
+}
+async function doAuth() {
+  const email = g('login-email').trim();
+  const password = g('login-password');
+  const msg = document.getElementById('login-msg');
+  const btn = document.getElementById('login-btn');
+  if (!email || !password) {
+    msg.className = 'login-msg error show';
+    msg.textContent = 'Заполните email и пароль';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Подождите...';
+  try {
+    const result = loginTab === 'login'
+      ? await sb.auth.signInWithPassword({ email, password })
+      : await sb.auth.signUp({ email, password });
+    if (result.error) {
+      msg.className = 'login-msg error show';
+      msg.textContent = result.error.message === 'Invalid login credentials' ? 'Неверный email или пароль' : result.error.message;
+    } else if (loginTab === 'signup' && !result.data.session) {
+      msg.className = 'login-msg success show';
+      msg.textContent = '✓ Подтвердите email через письмо';
+      setLoginTab('login');
+    } else {
+      currentUser = result.data.user;
+      await initApp();
+    }
+  } catch(e) {
+    msg.className = 'login-msg error show';
+    msg.textContent = 'Ошибка: ' + e.message;
+  }
+  btn.disabled = false;
+  btn.textContent = loginTab === 'login' ? 'Войти' : 'Зарегистрироваться';
+}
+async function doLogout() { await sb.auth.signOut(); location.reload(); }
+
+async function loadAll() {
+  const [d, e, t, k, doc] = await Promise.all([
+    sb.from('departments').select('*').order('id'),
+    sb.from('employees').select('*').order('id'),
+    sb.from('tasks').select('*').order('deadline'),
+    sb.from('kpis').select('*').order('id'),
+    sb.from('docs').select('*').order('date', { ascending: false }),
+  ]);
+  S.departments = d.data || [];
+  S.employees = e.data || [];
+  S.tasks = (t.data || []).map(x => ({...x, desc: x.description}));
+  S.kpis = k.data || [];
+  S.docs = doc.data || [];
+}
+async function db_insert(table, row) {
+  const { data, error } = await sb.from(table).insert(row).select();
+  if (error) { toast(error.message, 'error'); return null; }
+  return data[0];
+}
+async function db_update(table, id, fields) {
+  const { error } = await sb.from(table).update(fields).eq('id', id);
+  if (error) { toast(error.message, 'error'); return false; }
+  return true;
+}
+
+async function initApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('loading').style.display = 'flex';
+  await loadAll();
+  document.getElementById('user-email').textContent = currentUser.email;
+  document.getElementById('user-avatar').textContent = currentUser.email.charAt(0).toUpperCase();
+  loadTheme();
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('loading').style.display = 'none';
+  render();
+}
+async function start() {
+  if (!isConfigured) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('setup-banner').style.display = 'block';
+    return;
+  }
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { currentUser = session.user; await initApp(); }
+  else {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+}
+
+const TAB_TITLES = { dashboard: 'Главная', tasks: 'Задачи', kpi: 'KPI', org: 'Структура', docs: 'Документы' };
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('onclick') === `switchTab('${tab}')`);
+  });
+  document.getElementById('topbar-title').textContent = TAB_TITLES[tab];
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  render();
+}
+function render() {
+  const c = document.getElementById('content');
+  const a = document.getElementById('topbar-actions');
+  if (currentTab === 'dashboard') { a.innerHTML = ''; renderDashboard(c); }
+  if (currentTab === 'tasks') { renderTasksActions(a); renderTasks(c); }
+  if (currentTab === 'kpi') { renderKPIActions(a); renderKPI(c); }
+  if (currentTab === 'org') { renderOrgActions(a); renderOrg(c); }
+  if (currentTab === 'docs') { renderDocsActions(a); renderDocs(c); }
+}
+
+function renderDashboard(c) {
+  const tasks = S.tasks;
+  const stats = [
+    { num: tasks.length, label: 'Всего задач', icon: '📋', bg: 'var(--blue-soft)', color: 'var(--blue)' },
+    { num: tasks.filter(t=>t.status==='done').length, label: 'Выполнено', icon: '✅', bg: 'var(--green-soft)', color: 'var(--green)' },
+    { num: tasks.filter(t=>t.status==='in_progress').length, label: 'В работе', icon: '⚙️', bg: 'var(--yellow-soft)', color: 'var(--yellow)' },
+    { num: tasks.filter(t=>isOverdue(t)).length, label: 'Просрочено', icon: '⚠️', bg: 'var(--red-soft)', color: 'var(--red)' },
+  ];
+  const ok = S.kpis.filter(k=>kpiPct(k.current,k.target)>=95).length;
+  const warn = S.kpis.filter(k=>{ const p=kpiPct(k.current,k.target); return p>=75&&p<95; }).length;
+  const bad = S.kpis.filter(k=>kpiPct(k.current,k.target)<75).length;
+  const depts = S.departments.filter(d=>d.parent!==null);
+  c.innerHTML = `
+    <div class="grid4" style="margin-bottom:24px">
+      ${stats.map(s => `
+        <div class="stat-card">
+          <div class="stat-icon" style="background:${s.bg};color:${s.color}">${s.icon}</div>
+          <div class="stat-num">${s.num}</div>
+          <div class="stat-label">${s.label}</div>
+        </div>`).join('')}
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:14px">Статус KPI</h3>
+        ${[{ l: 'В норме (≥95%)', n: ok, c: 'var(--green)' }, { l: 'Под контролем (75–94%)', n: warn, c: 'var(--yellow)' }, { l: 'Требует внимания (<75%)', n: bad, c: 'var(--red)' }].map(i => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;gap:10px;align-items:center">
+              <div style="width:8px;height:8px;border-radius:50%;background:${i.c}"></div>
+              <span style="font-size:13px;color:var(--text2)">${i.l}</span>
+            </div>
+            <span style="color:${i.c};font-weight:800;font-size:18px">${i.n}</span>
+          </div>`).join('')}
+      </div>
+      <div class="card">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:14px">Прогресс отделов</h3>
+        ${depts.map(dept => {
+          const dt = S.tasks.filter(t=>t.dept===dept.id);
+          const dn = dt.filter(t=>t.status==='done').length;
+          const pct = dt.length>0 ? Math.round(dn/dt.length*100) : 0;
+          return `
+            <div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                <span style="font-size:13px;font-weight:500">${dept.name}</span>
+                <span style="font-size:12px;color:var(--text2);font-weight:600">${dn}/${dt.length}</span>
+              </div>
+              <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${dept.color}"></div></div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function renderTasksActions(a) {
+  a.innerHTML = `
+    <div class="view-toggle">
+      <button class="view-toggle-btn ${taskView==='kanban'?'active':''}" onclick="setTaskView('kanban')">⬛ Канбан</button>
+      <button class="view-toggle-btn ${taskView==='list'?'active':''}" onclick="setTaskView('list')">☰ Список</button>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('task')">+ Задача</button>`;
+}
+function setTaskView(v) { taskView = v; render(); }
+function renderTasks(c) { if (taskView === 'kanban') return renderTasksKanban(c); renderTasksList(c); }
+
+function taskCardHTML(t) {
+  const dept = S.departments.find(d=>d.id===t.dept);
+  const emp = S.employees.find(e=>e.id===t.assignee);
+  const od = isOverdue(t);
+  const pr = PRIORITY[t.priority];
+  return `
+    <div class="kanban-card" onclick="advanceTask(${t.id})">
+      <div class="kanban-card-title">${t.title}</div>
+      ${t.desc ? `<div class="kanban-card-desc">${t.desc}</div>` : ''}
+      <div class="kanban-card-meta">
+        ${dept ? `<span class="badge" style="color:${dept.color};background:${dept.color}22">${dept.name}</span>` : ''}
+        ${badge(pr.label, pr.color)}
+        ${od ? badge('Просрочено', 'var(--red)') : ''}
+      </div>
+      <div style="display:flex;gap:10px;margin-top:10px;font-size:11px;color:var(--text2);align-items:center">
+        ${emp ? `<span>👤 ${emp.name}</span>` : ''}
+        <span>📅 ${t.deadline}</span>
+      </div>
+    </div>`;
+}
+
+function renderTasksKanban(c) {
+  const cols = [
+    { status: 'todo', label: 'К выполнению', color: '#9ca3af' },
+    { status: 'in_progress', label: 'В работе', color: '#f59e0b' },
+    { status: 'done', label: 'Выполнено', color: '#10b981' },
+  ];
+  c.innerHTML = `
+    <div class="kanban">
+      ${cols.map(col => {
+        const tasks = S.tasks.filter(t => t.status === col.status);
+        return `
+          <div class="kanban-col">
+            <div class="kanban-col-header">
+              <div style="width:8px;height:8px;border-radius:50%;background:${col.color}"></div>
+              <span class="kanban-col-title">${col.label}</span>
+              <span class="kanban-col-count">${tasks.length}</span>
+            </div>
+            ${tasks.map(t => taskCardHTML(t)).join('')}
+            <button class="kanban-add" onclick="openModal('task')">+ Добавить задачу</button>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderTasksList(c) {
+  const filterOpts = [{ v:'all', l:'Все' }, { v:'todo', l:'К выполнению' }, { v:'in_progress', l:'В работе' }, { v:'done', l:'Выполнено' }, { v:'overdue', l:'Просрочено' }];
+  let tasks = S.tasks;
+  if(taskFilter==='overdue') tasks = tasks.filter(t=>isOverdue(t));
+  else if(taskFilter!=='all') tasks = tasks.filter(t=>t.status===taskFilter);
+  c.innerHTML = `
+    <div class="filters">
+      ${filterOpts.map(f => `<button class="filter-btn ${taskFilter===f.v?'active':''}" onclick="setTaskFilter('${f.v}')">${f.l}</button>`).join('')}
+    </div>
+    ${tasks.length ? tasks.map(t => {
+      const dept = S.departments.find(d=>d.id===t.dept);
+      const emp = S.employees.find(e=>e.id===t.assignee);
+      const od = isOverdue(t);
+      const st = od ? STATUS.overdue : STATUS[t.status];
+      const pr = PRIORITY[t.priority];
+      return `
+        <div class="task-row">
+          <div class="task-status-dot" style="background:${st.dot}"></div>
+          <div class="task-content">
+            <div class="task-title">${t.title}</div>
+            <div class="task-meta">
+              ${dept ? badge(dept.name, dept.color) : ''}
+              ${badge(pr.label, pr.color)}
+              <span>👤 ${emp?.name||'—'}</span>
+              <span>📅 ${t.deadline}</span>
+            </div>
+          </div>
+          ${t.status!=='done' ? `<button class="btn btn-ghost" onclick="advanceTask(${t.id})">${t.status==='todo'?'▶ Взять':'✓ Завершить'}</button>` : `<span style="color:var(--green);font-size:12px;font-weight:700">✓ Готово</span>`}
+        </div>`;
+    }).join('') : '<div style="text-align:center;color:var(--text3);padding:48px">Задач не найдено</div>'}`;
+}
+function setTaskFilter(v) { taskFilter=v; render(); }
+
+async function advanceTask(id) {
+  const t = S.tasks.find(t=>t.id===id);
+  if(!t || t.status==='done') return;
+  const newStatus = t.status==='todo' ? 'in_progress' : 'done';
+  if(await db_update('tasks', id, { status: newStatus })) {
+    t.status = newStatus;
+    render();
+    toast('Статус обновлён');
+  }
+}
+
+function renderKPIActions(a) { a.innerHTML = `<button class="btn btn-primary" onclick="openModal('kpi')">+ KPI</button>`; }
+function renderKPI(c) {
+  const depts = S.departments.filter(d=>d.parent!==null);
+  let kpis = kpiFilter==='all' ? S.kpis : S.kpis.filter(k=>k.dept===+kpiFilter);
+  c.innerHTML = `
+    <div class="filters">
+      <button class="filter-btn ${kpiFilter==='all'?'active':''}" onclick="setKpiFilter('all')">Все</button>
+      ${depts.map(d => `<button class="filter-btn ${kpiFilter===String(d.id)?'active':''}" onclick="setKpiFilter('${d.id}')">${d.name}</button>`).join('')}
+    </div>
+    <div class="grid3">
+      ${kpis.map(k => {
+        const dept = S.departments.find(d=>d.id===k.dept);
+        const pct = kpiPct(k.current, k.target);
+        const col = kpiColor(k.current, k.target);
+        return `
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-dept">${dept?.name||''}</span>
+              ${badge(k.period,'var(--text2)')}
+            </div>
+            <div class="kpi-name">${k.name}</div>
+            <div class="kpi-values">
+              <div><span class="kpi-current" style="color:${col}">${(+k.current).toLocaleString('ru-RU')}</span><span style="font-size:13px;color:var(--text2)"> ${k.unit}</span></div>
+              <div class="kpi-target">Цель: ${(+k.target).toLocaleString('ru-RU')} ${k.unit}</div>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${col}"></div></div>
+            <div class="kpi-pct" style="color:${col}">${pct}%</div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+function setKpiFilter(v) { kpiFilter=v; render(); }
+
+function renderOrgActions(a) {
+  a.innerHTML = `
+    <button class="btn btn-ghost" onclick="openModal('emp')">+ Сотрудник</button>
+    <button class="btn btn-primary" onclick="openModal('dept')">+ Отдел</button>`;
+}
+function renderOrg(c) {
+  const roots = S.departments.filter(d=>d.parent===null);
+  c.innerHTML = roots.map(d=>deptNodeHTML(d, 0)).join('');
+}
+function deptNodeHTML(dept, level) {
+  const children = S.departments.filter(d=>d.parent===dept.id);
+  const emps = S.employees.filter(e=>e.dept===dept.id);
+  const isOpen = openDepts.has(dept.id);
+  return `
+    <div class="dept-node" style="margin-left:${level*24}px">
+      <div class="dept-header" onclick="toggleDept(${dept.id})">
+        <div class="dept-color" style="background:${dept.color}"></div>
+        <div style="flex:1">
+          <div class="dept-name">${dept.name}</div>
+          <div class="dept-meta">${dept.head||'—'} · ${emps.length} чел.</div>
+        </div>
+        <span style="color:var(--text3);font-size:11px">${isOpen?'▴':'▾'}</span>
+      </div>
+      ${isOpen ? `
+        <div class="dept-employees">
+          ${emps.length ? emps.map(e => `
+            <div class="emp-row">
+              <div class="emp-avatar" style="background:${dept.color}">${e.name.charAt(0)}</div>
+              <div style="flex:1">
+                <div class="emp-name">${e.name}</div>
+                <div class="emp-role">${e.role||''}</div>
+              </div>
+              ${badge(e.type==='internal'?'Штат':'Внешний', e.type==='internal'?'var(--blue)':'var(--yellow)')}
+            </div>`).join('') : '<div style="padding:10px;color:var(--text3);font-size:12px">Нет сотрудников</div>'}
+        </div>` : ''}
+      ${children.map(c => deptNodeHTML(c, level+1)).join('')}
+    </div>`;
+}
+function toggleDept(id) {
+  openDepts.has(id) ? openDepts.delete(id) : openDepts.add(id);
+  render();
+}
+
+function renderDocsActions(a) { a.innerHTML = `<button class="btn btn-primary" onclick="openModal('doc')">+ Документ</button>`; }
+function renderDocs(c) {
+  const depts = S.departments.filter(d=>d.parent!==null);
+  let docs = docFilter==='all' ? S.docs : S.docs.filter(d=>d.dept===+docFilter);
+  const tc = { 'Положение':'var(--blue)', 'Инструкция':'var(--yellow)', 'Регламент':'var(--green)', 'Приказ':'var(--red)' };
+  c.innerHTML = `
+    <div class="filters">
+      <button class="filter-btn ${docFilter==='all'?'active':''}" onclick="setDocFilter('all')">Все</button>
+      ${depts.map(d => `<button class="filter-btn ${docFilter===String(d.id)?'active':''}" onclick="setDocFilter('${d.id}')">${d.name}</button>`).join('')}
+    </div>
+    <div class="grid3">
+      ${docs.length ? docs.map(doc => {
+        const dept = S.departments.find(d=>d.id===doc.dept);
+        return `
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              ${badge(doc.type, tc[doc.type]||'var(--text2)')}
+              <span style="font-size:11px;color:var(--text3)">${doc.date}</span>
+            </div>
+            <div style="font-weight:600;font-size:14px;margin-bottom:6px">${doc.title}</div>
+            <div style="font-size:12px;color:var(--text2)">${dept?.name||''}</div>
+          </div>`;
+      }).join('') : '<div style="grid-column:1/-1;text-align:center;color:var(--text3);padding:48px">Документов нет</div>'}
+    </div>`;
+}
+function setDocFilter(v) { docFilter=v; render(); }
+
+function openModal(type) {
+  document.getElementById('modal-body').innerHTML = modalHTML(type);
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function closeModalOnOverlay(e) { if(e.target.id==='modal-overlay') closeModal(); }
+function deptOptions(onlyChildren=false) {
+  const depts = onlyChildren ? S.departments.filter(d=>d.parent!==null) : S.departments;
+  return depts.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+}
+function empOptions() {
+  return `<option value="">— Выбрать —</option>` + S.employees.map(e=>`<option value="${e.id}">${e.name} (${e.type==='internal'?'штат':'внешний'})</option>`).join('');
+}
+function modalHTML(type) {
+  const today = new Date().toISOString().slice(0,10);
+  if(type==='task') return `
+    <div class="modal-title">Новая задача <button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="form-group"><label class="form-label">Название</label><input class="form-control" id="f-title" placeholder="Что нужно сделать?"></div>
+    <div class="form-group"><label class="form-label">Подразделение</label><select class="form-control" id="f-dept">${deptOptions(true)}</select></div>
+    <div class="form-group"><label class="form-label">Исполнитель</label><select class="form-control" id="f-emp">${empOptions()}</select></div>
+    <div class="form-group"><label class="form-label">Срок</label><input class="form-control" id="f-deadline" type="date" value="${today}"></div>
+    <div class="form-group"><label class="form-label">Приоритет</label><select class="form-control" id="f-priority"><option value="high">Высокий</option><option value="medium" selected>Средний</option><option value="low">Низкий</option></select></div>
+    <div class="form-group"><label class="form-label">Описание</label><textarea class="form-control" id="f-desc" placeholder="Подробности..."></textarea></div>
+    <button class="btn btn-primary btn-block" onclick="saveTask()">Создать задачу</button>`;
+  if(type==='dept') return `
+    <div class="modal-title">Новое подразделение <button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="form-group"><label class="form-label">Название</label><input class="form-control" id="f-name"></div>
+    <div class="form-group"><label class="form-label">Вышестоящее</label><select class="form-control" id="f-parent">${deptOptions()}</select></div>
+    <div class="form-group"><label class="form-label">Руководитель</label><input class="form-control" id="f-head"></div>
+    <div class="form-group"><label class="form-label">Цвет</label><input class="form-control" id="f-color" type="color" value="#6c5ce7" style="height:42px;cursor:pointer;padding:5px"></div>
+    <button class="btn btn-primary btn-block" onclick="saveDept()">Создать</button>`;
+  if(type==='emp') return `
+    <div class="modal-title">Новый сотрудник <button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="form-group"><label class="form-label">ФИО / Название</label><input class="form-control" id="f-name"></div>
+    <div class="form-group"><label class="form-label">Подразделение</label><select class="form-control" id="f-dept">${deptOptions()}</select></div>
+    <div class="form-group"><label class="form-label">Должность</label><input class="form-control" id="f-role"></div>
+    <div class="form-group"><label class="form-label">Тип</label><select class="form-control" id="f-type"><option value="internal">Штатный</option><option value="external">Внешний / Подрядчик</option></select></div>
+    <button class="btn btn-primary btn-block" onclick="saveEmp()">Создать</button>`;
+  if(type==='kpi') return `
+    <div class="modal-title">Новый показатель <button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="form-group"><label class="form-label">Подразделение</label><select class="form-control" id="f-dept">${deptOptions(true)}</select></div>
+    <div class="form-group"><label class="form-label">Название показателя</label><input class="form-control" id="f-name"></div>
+    <div class="form-group"><label class="form-label">Целевое значение</label><input class="form-control" id="f-target" type="number"></div>
+    <div class="form-group"><label class="form-label">Текущее значение</label><input class="form-control" id="f-current" type="number"></div>
+    <div class="form-group"><label class="form-label">Единица измерения</label><input class="form-control" id="f-unit" value="%"></div>
+    <div class="form-group"><label class="form-label">Период</label><select class="form-control" id="f-period"><option>День</option><option>Неделя</option><option selected>Месяц</option><option>Квартал</option><option>Год</option></select></div>
+    <button class="btn btn-primary btn-block" onclick="saveKpi()">Создать</button>`;
+  if(type==='doc') return `
+    <div class="modal-title">Новый документ <button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="form-group"><label class="form-label">Подразделение</label><select class="form-control" id="f-dept">${deptOptions()}</select></div>
+    <div class="form-group"><label class="form-label">Тип</label><select class="form-control" id="f-type"><option>Положение</option><option>Инструкция</option><option>Регламент</option><option>Приказ</option></select></div>
+    <div class="form-group"><label class="form-label">Название</label><input class="form-control" id="f-title"></div>
+    <div class="form-group"><label class="form-label">Дата</label><input class="form-control" id="f-date" type="date" value="${today}"></div>
+    <button class="btn btn-primary btn-block" onclick="saveDoc()">Создать</button>`;
+}
+
+async function saveTask() {
+  const title = g('f-title').trim();
+  if(!title) return toast('Введите название', 'error');
+  const row = await db_insert('tasks', { title, dept:+g('f-dept'), assignee:+g('f-emp')||null, deadline:g('f-deadline'), status:'todo', priority:g('f-priority'), description:g('f-desc') });
+  if(row) { S.tasks.push({...row, desc:row.description}); closeModal(); render(); toast('Задача создана'); }
+}
+async function saveDept() {
+  const name = g('f-name').trim();
+  if(!name) return toast('Введите название', 'error');
+  const row = await db_insert('departments', { name, parent:+g('f-parent'), head:g('f-head'), color:g('f-color') });
+  if(row) { S.departments.push(row); closeModal(); render(); toast('Подразделение создано'); }
+}
+async function saveEmp() {
+  const name = g('f-name').trim();
+  if(!name) return toast('Введите ФИО', 'error');
+  const row = await db_insert('employees', { name, dept:+g('f-dept'), role:g('f-role'), type:g('f-type') });
+  if(row) { S.employees.push(row); closeModal(); render(); toast('Сотрудник добавлен'); }
+}
+async function saveKpi() {
+  const name = g('f-name').trim();
+  const target = +g('f-target');
+  if(!name||!target) return toast('Заполните название и цель', 'error');
+  const row = await db_insert('kpis', { dept:+g('f-dept'), name, target, current:+g('f-current')||0, unit:g('f-unit')||'%', period:g('f-period') });
+  if(row) { S.kpis.push(row); closeModal(); render(); toast('KPI добавлен'); }
+}
+async function saveDoc() {
+  const title = g('f-title').trim();
+  if(!title) return toast('Введите название', 'error');
+  const row = await db_insert('docs', { dept:+g('f-dept'), type:g('f-type'), title, date:g('f-date') });
+  if(row) { S.docs.push(row); closeModal(); render(); toast('Документ добавлен'); }
+}
+
+start();
+</script>
+</body>
+</html>
